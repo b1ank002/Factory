@@ -2,7 +2,7 @@
 pragma solidity ^0.8.29;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "Factory/IUtilityContract.sol";
+import "Factory/UtilityContracts/IUtilityContract.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ERC20Airdroper is IUtilityContract, Ownable {
@@ -24,6 +24,7 @@ contract ERC20Airdroper is IUtilityContract, Ownable {
     error receiveFailed(address receiver); // receive failed at address receiver
     error notEnough(); // not enough approved tokens
     error AlreadyInitialized();
+    error IncorrectLength();
 
     function initialize(bytes memory _initData) external notInit returns(bool) {
         (address _token, uint256 _amount, address _treasury, address _owner) = abi.decode(_initData, (address, uint256, address, address));
@@ -42,7 +43,7 @@ contract ERC20Airdroper is IUtilityContract, Ownable {
     }
 
     function airdrop(address[] calldata _receivers, uint256[] calldata _amounts) external onlyOwner {
-        require(_receivers.length == _amounts.length);
+        require(_receivers.length == _amounts.length, IncorrectLength());
         require(token.allowance(treasury, address(this)) >= amount, notEnough());
 
         for(uint256 i = 0; i < _receivers.length; i++) {

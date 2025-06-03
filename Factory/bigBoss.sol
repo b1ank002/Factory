@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import "Factory/IUtilityContract.sol";
+import "Factory/UtilityContracts/IUtilityContract.sol";
 
 contract BigBoss is IUtilityContract {
     uint256 public number;

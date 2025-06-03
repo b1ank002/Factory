@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "Factory/IUtilityContract.sol";
+import "Factory/UtilityContracts/IUtilityContract.sol";
 
 contract DeployManager is Ownable {
     constructor(address init) Ownable(init) {
