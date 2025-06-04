@@ -13,21 +13,29 @@ contract Vesting is IUtilityContract, Ownable {
 
     IERC20 public token;
 
-    address public beneficiary;
-
     uint256 public totalAmount;
     uint256 public startTime;
     uint256 public cliffDuration;
-    uint256 public claimDuratoin;
-    uint256 public claimed;
+    uint256 public claimDuration;
+    uint256 public minAmount;
+    uint256 public cooldown;
+
+    struct UserInfo {
+        uint256 amount;
+        uint256 claimed;
+        uint256 lastClaim;
+    }
+
+    mapping(address => UserInfo) users;
 
     event Claim(address beneficiary, uint256 amount, uint256 timestamp);
 
     error AlreadyInitialized();
-    error NotBeneficiary();
     error CliffNotReached();
     error NothingToClaim();
     error TransferFailed();
+    error CooldownNotFinished();
+
 
     modifier notInit() {
         require(!initialized, AlreadyInitialized());
@@ -35,30 +43,52 @@ contract Vesting is IUtilityContract, Ownable {
     }
 
     function claim() public {
-        require(msg.sender == beneficiary, NotBeneficiary());
         require(block.timestamp >= startTime + cliffDuration, CliffNotReached());
 
-        uint256 claimable = claimableAmount();
-        require(claimable > 0, NothingToClaim());
+        uint256 claimable = claimableAmount(msg.sender);
+        require(claimable >= minAmount, NothingToClaim());
+        require(users[msg.sender].lastClaim < block.timestamp - cooldown);
 
-        claimed += claimable;
-        require(token.transfer(beneficiary, claimable), TransferFailed());
+        users[msg.sender].claimed += claimable;
+        require(token.transfer(msg.sender, claimable), TransferFailed());
+        users[msg.sender].lastClaim = block.timestamp;
 
-        emit Claim(beneficiary, claimable, block.timestamp);
+        emit Claim(msg.sender, claimable, block.timestamp);
     }
 
-    function _vestedAmount() internal view returns(uint256) {
+    function _addUsers(address[] calldata _users, uint256[] calldata _amounts) internal onlyOwner {
+        require(_users.length == _amounts.length);
+        require(!initialized);
+
+        for (uint256 i = 0; i < _users.length; i++) {
+            users[_users[i]] = UserInfo({
+                amount: _amounts[i],
+                claimed: 0,
+                lastClaim: 0
+            });
+        }
+    }  
+
+    function _vestedAmount(address _user) internal view returns(uint256) {
         if (block.timestamp < startTime + cliffDuration) return 0;
 
         uint256 passedTime = block.timestamp - (startTime + cliffDuration);
 
-        return totalAmount * passedTime / claimDuratoin;
+        return users[_user].amount * passedTime / claimDuration;
     }
 
-    function claimableAmount() public view returns(uint256) {
+    function claimableAmount(address _user) public view returns(uint256) {
         if (block.timestamp < startTime + cliffDuration) return 0;
 
-        return _vestedAmount() - claimed;
+        return _vestedAmount(_user) - users[_user].claimed;
+    }
+
+    function setMinClaim(uint256 _newMin) public onlyOwner {
+        minAmount = _newMin;
+    }
+
+    function setCooldown(uint256 _newCooldown) public onlyOwner {
+        cooldown = _newCooldown;
     }
 
     function initialize(bytes memory _initData) external notInit returns(bool) {
