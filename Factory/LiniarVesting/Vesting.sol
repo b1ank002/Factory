@@ -6,6 +6,20 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "Factory/UtilityContracts/IUtilityContract.sol";
 
+
+/*
+    0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2 200
+    0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db 300
+    0x78731D3Ca6b7E34aC0F824c42a7cC18A495cabaB 400
+    0x617F2E2fD72FD9D5503197092aC168c91465E7f2 100
+
+    root:
+    0x8a92c0e48624b04133ae9515ebcc9390940ba18327467d75f16c24a21a2a59cf
+
+    proof for 0xAB...b2, 200:
+    ["0x049da3e843e9867f462a9cc50151965d9fe72c32f1d694b5d5586ca9492ffebe", "0x21d9640ea472f42c449e248099933bc3536e6eacf44ba93c6831f0263a0618e0"]
+*/
+
 contract Vesting is Ownable, IUtilityContract {
     constructor() Ownable(msg.sender) {}
 
@@ -20,7 +34,7 @@ contract Vesting is Ownable, IUtilityContract {
         uint256 lastClaim;
     }
 
-    mapping(address => UserInfo) public beneficiaries;
+    mapping(bytes32 => UserInfo) public beneficiaries;
 
     uint256 public totalAmount;
     uint256 public startTime;
@@ -51,18 +65,6 @@ contract Vesting is Ownable, IUtilityContract {
     error IncorrectMinAmount();
     error IncorrectCooldown();
 
-    modifier checkBeneficiary(uint256 _amount, bytes32[] calldata _proofs) {
-        bytes32 leaf = keccak256(
-            abi.encodePacked(
-                keccak256(
-                    abi.encodePacked(msg.sender, _amount)
-                )
-            )
-        );
-        require(MerkleProof.verify(_proofs, root, leaf), VerificationFailed());
-        _;
-    }
-
     modifier notInit() {
         require(!initialized, AlreadyInitialized());
         _;
@@ -71,13 +73,16 @@ contract Vesting is Ownable, IUtilityContract {
     function claim(uint256 _amount, bytes32[] calldata _proofs) public {
         require(block.timestamp >= startTime + cliffDuration, CliffNotReached());
 
-        uint256 claimable = claimableAmount(msg.sender, _amount, _proofs);
-        require(claimable >= minAmount, NothingToClaim());
-        require(beneficiaries[msg.sender].lastClaim < block.timestamp - cooldown, CooldownNotFinished());
+        bytes32 leaf = _makeLeaf(_amount);
+        require(MerkleProof.verify(_proofs, root, leaf), VerificationFailed());
 
-        beneficiaries[msg.sender].claimed += claimable;
+        uint256 claimable = claimableAmount(_amount, leaf);
+        require(claimable >= minAmount, NothingToClaim());
+        require(beneficiaries[leaf].lastClaim == 0 || beneficiaries[leaf].lastClaim < block.timestamp - cooldown, CooldownNotFinished());
+
+        beneficiaries[leaf].claimed += claimable;
         require(token.transfer(msg.sender, claimable), TransferFailed());
-        beneficiaries[msg.sender].lastClaim = block.timestamp;
+        beneficiaries[leaf].lastClaim = block.timestamp;
 
         emit Claim(msg.sender, claimable, block.timestamp);
     }
@@ -90,10 +95,20 @@ contract Vesting is Ownable, IUtilityContract {
         return _amount * passedTime / claimDuration;
     }
 
-    function claimableAmount(address _beneficiary, uint256 _amount, bytes32[] calldata _proofs) public view checkBeneficiary(_amount, _proofs) returns(uint256) {
-        if (block.timestamp < startTime + cliffDuration) return 0;
+    function claimableAmount(uint256 _amount, bytes32 leaf) public view  returns(uint256) {
 
-        return _vestedAmount(_amount) - beneficiaries[_beneficiary].claimed;
+        return _vestedAmount(_amount) - beneficiaries[leaf].claimed;
+    }
+
+    function _makeLeaf(uint256 _amount) internal view returns(bytes32) {
+        bytes32 leaf = keccak256(
+            abi.encode(
+                keccak256(
+                    abi.encode(msg.sender, _amount)
+                )
+            )
+        );
+        return leaf;
     }
 
     function initialize(bytes memory _initData) external notInit returns(bool) {
@@ -107,7 +122,7 @@ contract Vesting is Ownable, IUtilityContract {
         return initialized = true;
     }
 
-    function getInitData(uint256 _owner, address _token, bytes32 _root, uint256 _totalAmount) external pure returns(bytes memory) {
+    function getInitData(address _owner, address _token, bytes32 _root, uint256 _totalAmount) external pure returns(bytes memory) {
         return abi.encode(_owner, _token, _root, _totalAmount);
     }
 
