@@ -51,6 +51,7 @@ contract Vesting is Ownable, IUtilityContract {
         uint256 minAmount,
         uint256 cooldown,
         uint256 timestamp);
+    event TokensWithdraw(uint256 amount, uint256 timestamp);
 
     error AlreadyInitialized();
     error CliffNotReached();
@@ -64,6 +65,8 @@ contract Vesting is Ownable, IUtilityContract {
     error IncorrectClaimDuration();
     error IncorrectMinAmount();
     error IncorrectCooldown();
+    error NotFinishedYet();
+    error NothingToWithdraw();
 
     modifier notInit() {
         require(!initialized, AlreadyInitialized());
@@ -91,6 +94,7 @@ contract Vesting is Ownable, IUtilityContract {
         if (block.timestamp < startTime + cliffDuration) return 0;
 
         uint256 passedTime = block.timestamp - (startTime + cliffDuration);
+        if (passedTime > claimDuration) passedTime = claimDuration;
 
         return _amount * passedTime / claimDuration;
     }
@@ -147,5 +151,15 @@ contract Vesting is Ownable, IUtilityContract {
         cooldown = _cooldown;
 
         emit VestingCreated(_startTime, _cliffDuration, _claimDuration, _minAmount, _cooldown, block.timestamp);
+    }
+
+    function withdrawUnallocated() external onlyOwner {
+        require(block.timestamp > startTime + claimDuration, NotFinishedYet());
+
+        uint256 avaible = token.balanceOf(address(this));
+        require(avaible > 0, NothingToWithdraw());
+        require(token.transfer(owner(), avaible), TransferFailed());
+
+        emit TokensWithdraw(avaible, block.timestamp);
     }
 }
