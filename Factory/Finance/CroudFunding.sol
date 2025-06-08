@@ -28,6 +28,7 @@ contract CroundFunding is Ownable, IUtilityContract {
     error CroudNotFinished();
     error AlreadyExist();
     error VestingNotSet();
+    error WithdrawWasCalled();
 
     event Contributed(address investor, uint256 value, uint256 timestamp);
     event VestlingCreated(address vestling, uint256 timestamp);
@@ -79,6 +80,7 @@ contract CroundFunding is Ownable, IUtilityContract {
 
     function withdraw() external onlyOwner {
         require(isFinished, CroudNotFinished());
+        require(address(this).balance > 0, WithdrawWasCalled());
         require(vesting != address(0), VestingNotSet());
 
         (bool succes, ) = payable(vesting).call{ value: address(this).balance }("");
