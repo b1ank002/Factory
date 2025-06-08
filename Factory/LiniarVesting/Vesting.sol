@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "Factory/UtilityContracts/IUtilityContract.sol";
 
-
 /*
     0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2 200
     0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db 300
@@ -28,7 +27,7 @@ contract Vesting is Ownable, IUtilityContract {
     IERC20 public token;
 
     bytes32 public root;
-    
+
     struct UserInfo {
         uint256 claimed;
         uint256 lastClaim;
@@ -50,7 +49,8 @@ contract Vesting is Ownable, IUtilityContract {
         uint256 claimDuration,
         uint256 minAmount,
         uint256 cooldown,
-        uint256 timestamp);
+        uint256 timestamp
+    );
     event TokensWithdraw(uint256 amount, uint256 timestamp);
 
     error AlreadyInitialized();
@@ -81,7 +81,10 @@ contract Vesting is Ownable, IUtilityContract {
 
         uint256 claimable = claimableAmount(_amount, leaf);
         require(claimable >= minAmount, NothingToClaim());
-        require(beneficiaries[leaf].lastClaim == 0 || beneficiaries[leaf].lastClaim < block.timestamp - cooldown, CooldownNotFinished());
+        require(
+            beneficiaries[leaf].lastClaim == 0 || beneficiaries[leaf].lastClaim < block.timestamp - cooldown,
+            CooldownNotFinished()
+        );
 
         beneficiaries[leaf].claimed += claimable;
         require(token.transfer(msg.sender, claimable), TransferFailed());
@@ -90,7 +93,7 @@ contract Vesting is Ownable, IUtilityContract {
         emit Claim(msg.sender, claimable, block.timestamp);
     }
 
-    function _vestedAmount(uint256 _amount) internal view returns(uint256) {
+    function _vestedAmount(uint256 _amount) internal view returns (uint256) {
         if (block.timestamp < startTime + cliffDuration) return 0;
 
         uint256 passedTime = block.timestamp - (startTime + cliffDuration);
@@ -99,34 +102,32 @@ contract Vesting is Ownable, IUtilityContract {
         return _amount * passedTime / claimDuration;
     }
 
-    function claimableAmount(uint256 _amount, bytes32 leaf) public view  returns(uint256) {
-
+    function claimableAmount(uint256 _amount, bytes32 leaf) public view returns (uint256) {
         return _vestedAmount(_amount) - beneficiaries[leaf].claimed;
     }
 
-    function _makeLeaf(uint256 _amount) internal view returns(bytes32) {
-        bytes32 leaf = keccak256(
-            abi.encode(
-                keccak256(
-                    abi.encode(msg.sender, _amount)
-                )
-            )
-        );
+    function _makeLeaf(uint256 _amount) internal view returns (bytes32) {
+        bytes32 leaf = keccak256(abi.encode(keccak256(abi.encode(msg.sender, _amount))));
         return leaf;
     }
 
-    function initialize(bytes memory _initData) external notInit returns(bool) {
-        (address _owner, address _token, bytes32 _root, uint256 _totalAmount) = abi.decode(_initData, (address, address, bytes32, uint256));
+    function initialize(bytes memory _initData) external notInit returns (bool) {
+        (address _owner, address _token, bytes32 _root, uint256 _totalAmount) =
+            abi.decode(_initData, (address, address, bytes32, uint256));
 
         token = IERC20(_token);
         root = _root;
         totalAmount = _totalAmount;
         _transferOwnership(_owner);
-        
+
         return initialized = true;
     }
 
-    function getInitData(address _owner, address _token, bytes32 _root, uint256 _totalAmount) external pure returns(bytes memory) {
+    function getInitData(address _owner, address _token, bytes32 _root, uint256 _totalAmount)
+        external
+        pure
+        returns (bytes memory)
+    {
         return abi.encode(_owner, _token, _root, _totalAmount);
     }
 

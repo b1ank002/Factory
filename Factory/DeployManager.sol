@@ -6,9 +6,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "Factory/UtilityContracts/IUtilityContract.sol";
 
 contract DeployManager is Ownable {
-    constructor(address init) Ownable(init) {
-
-    }
+    constructor(address init) Ownable(init) {}
 
     mapping(address => address[]) public deployedContracts;
     mapping(address => ContractInfo) public contractsData;
@@ -19,8 +17,8 @@ contract DeployManager is Ownable {
     event newDeployment(address deployer, address contractAddress, uint256 fee, uint256 timestamp);
 
     struct ContractInfo {
-      uint256 fee;
-      bool isActive;  
+        uint256 fee;
+        bool isActive;
     }
 
     error ContractNotActive();
@@ -28,7 +26,7 @@ contract DeployManager is Ownable {
     error InitializationFailed();
     error TransactionFailed();
 
-    function deploy(address _utilityContract, bytes calldata _initData) external payable returns(address) {
+    function deploy(address _utilityContract, bytes calldata _initData) external payable returns (address) {
         ContractInfo storage info = contractsData[_utilityContract];
         require(info.isActive, ContractNotActive());
         require(msg.value == info.fee, NotEnoughFunds());
@@ -37,9 +35,9 @@ contract DeployManager is Ownable {
 
         require(IUtilityContract(clone).initialize(_initData), InitializationFailed());
 
-        (bool success, ) = payable(owner()).call{value: msg.value}("");
+        (bool success,) = payable(owner()).call{value: msg.value}("");
         require(success, TransactionFailed());
-        
+
         deployedContracts[msg.sender].push(clone);
 
         emit newDeployment(msg.sender, clone, info.fee, block.timestamp);
@@ -48,10 +46,7 @@ contract DeployManager is Ownable {
     }
 
     function addNewContract(address _contractAddress, uint256 _fee, bool _isActive) external onlyOwner {
-        contractsData[_contractAddress] = ContractInfo ({
-            fee: _fee,
-            isActive: _isActive
-        });
+        contractsData[_contractAddress] = ContractInfo({fee: _fee, isActive: _isActive});
 
         emit newContractAdded(_contractAddress, _fee, _isActive, block.timestamp);
     }

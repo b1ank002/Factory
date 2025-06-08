@@ -7,7 +7,5 @@ contract UtilityContract is IUtilityContract {
     uint256 public number;
     address public owner;
 
-    function initialize(bytes memory) external returns(bool) {
-
-    }
+    function initialize(bytes memory) external returns (bool) {}
 }

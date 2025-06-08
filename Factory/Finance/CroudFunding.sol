@@ -73,8 +73,8 @@ contract CroundFunding is Ownable, IUtilityContract {
         emit Refunded(msg.sender, _value, block.timestamp);
     }
 
-    function _transferProcces(uint256 _value) private returns(bool) {
-        (bool success, ) = payable(msg.sender).call{ value: _value }("");
+    function _transferProcces(uint256 _value) private returns (bool) {
+        (bool success,) = payable(msg.sender).call{value: _value}("");
         return success;
     }
 
@@ -83,21 +83,21 @@ contract CroundFunding is Ownable, IUtilityContract {
         require(address(this).balance > 0, WithdrawWasCalled());
         require(vesting != address(0), VestingNotSet());
 
-        (bool succes, ) = payable(vesting).call{ value: address(this).balance }("");
+        (bool succes,) = payable(vesting).call{value: address(this).balance}("");
         require(succes, WithdrawFailed());
     }
 
-    function initialize(bytes memory _initData) external notInit returns(bool) {
+    function initialize(bytes memory _initData) external notInit returns (bool) {
         (address fundriser, uint256 _goal, uint256 _duration) = abi.decode(_initData, (address, uint256, uint256));
 
         _transferOwnership(fundriser);
         goal = _goal;
         duration = _duration;
-        
+
         return initialized = true;
     }
 
-    function getInitData(address fundriser, uint256 _goal, uint256 _duration) external pure returns(bytes memory) {
+    function getInitData(address fundriser, uint256 _goal, uint256 _duration) external pure returns (bytes memory) {
         return abi.encode(fundriser, _goal, _duration);
     }
 }
