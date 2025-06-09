@@ -4,7 +4,7 @@ pragma solidity ^0.8.27;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "Factory/UtilityContracts/IUtilityContract.sol";
+import "Factory/UtilityContracts/AbstractUtilityContract.sol";
 
 /*
     0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2 200
@@ -19,8 +19,8 @@ import "Factory/UtilityContracts/IUtilityContract.sol";
     ["0x049da3e843e9867f462a9cc50151965d9fe72c32f1d694b5d5586ca9492ffebe", "0x21d9640ea472f42c449e248099933bc3536e6eacf44ba93c6831f0263a0618e0"]
 */
 
-contract Vesting is Ownable, IUtilityContract {
-    constructor() Ownable(msg.sender) {}
+contract Vesting is Ownable, AbstractUtilityContract {
+    constructor() payable Ownable(msg.sender) {}
 
     bool private initialized;
 
@@ -111,9 +111,11 @@ contract Vesting is Ownable, IUtilityContract {
         return leaf;
     }
 
-    function initialize(bytes memory _initData) external notInit returns (bool) {
-        (address _owner, address _token, bytes32 _root, uint256 _totalAmount) =
-            abi.decode(_initData, (address, address, bytes32, uint256));
+    function initialize(bytes memory _initData) external override notInit returns (bool) {
+        (address _deployManager, address _owner, address _token, bytes32 _root, uint256 _totalAmount) =
+            abi.decode(_initData, (address, address, address, bytes32, uint256));
+
+        _setDeployManager(_deployManager);
 
         token = IERC20(_token);
         root = _root;
@@ -123,12 +125,12 @@ contract Vesting is Ownable, IUtilityContract {
         return initialized = true;
     }
 
-    function getInitData(address _owner, address _token, bytes32 _root, uint256 _totalAmount)
+    function getInitData(address _deployManager, address _owner, address _token, bytes32 _root, uint256 _totalAmount)
         external
         pure
         returns (bytes memory)
     {
-        return abi.encode(_owner, _token, _root, _totalAmount);
+        return abi.encode(_deployManager, _owner, _token, _root, _totalAmount);
     }
 
     function startVesting(
