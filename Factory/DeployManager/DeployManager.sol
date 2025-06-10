@@ -16,12 +16,14 @@ contract DeployManager is IDeployManager, Ownable, ERC165 {
     /// @notice user address => users utility contracts
     mapping(address => address[]) public deployedContracts;
 
-    /// @notice address of utolity contract => ContarctInfo (fee and status of utility contract)
+    /// @notice address of utility contract => ContarctInfo (fee and status of utility contract also registered time)
     mapping(address => ContractInfo) public contractsData;
 
+    /// @dev Store registered contract information
     struct ContractInfo {
-        uint256 fee;
-        bool isActive;
+        uint256 fee; /// @notice Deployment fee(in wei)
+        bool isActive; /// @notice Show active status
+        uint256 registeredAt; /// @notice Registration time
     }
 
     /// @inheritdoc IDeployManager
@@ -50,8 +52,9 @@ contract DeployManager is IDeployManager, Ownable, ERC165 {
             IUtilityContract(_contractAddress).supportsInterface(type(IUtilityContract).interfaceId),
             ContractIsNotUtilityContract()
         );
+        require(contractsData[_contractAddress].registeredAt > 0, AlreadyRegistered());
 
-        contractsData[_contractAddress] = ContractInfo({fee: _fee, isActive: _isActive});
+        contractsData[_contractAddress] = ContractInfo({fee: _fee, isActive: _isActive, registeredAt: block.timestamp});
 
         emit newContractAdded(_contractAddress, _fee, _isActive, block.timestamp);
     }
@@ -85,8 +88,7 @@ contract DeployManager is IDeployManager, Ownable, ERC165 {
         emit ContractStatusUpdated(_contractAddress, true, block.timestamp);
     }
 
-    /// @notice function to check is contract siganture equal signature of utility contract
-    /// @param interfaceId signature of contract
+    /// @inheritdoc ERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC165) returns (bool) {
         return interfaceId == type(IUtilityContract).interfaceId || super.supportsInterface(interfaceId);
     }

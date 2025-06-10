@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 /// @author Blank002
 /// @notice Base implementation of functions
 abstract contract AbstractUtilityContract is IUtilityContract, ERC165 {
+    /// @notice The address of deploy manager that deployed this contract
     address public deployManager;
 
     /// @inheritdoc IUtilityContract
@@ -18,8 +19,8 @@ abstract contract AbstractUtilityContract is IUtilityContract, ERC165 {
         return true;
     }
 
-    /// @notice internal func for setting address of deploy manager
-    /// @param _deployManager address of deploy manager
+    /// @notice Internal function for setting address of deploy manager
+    /// @param _deployManager The address of deploy manager
     function _setDeployManager(address _deployManager) internal virtual {
         if (!_validateDeployManager(_deployManager)) {
             revert FailedToSetDeployManager();
@@ -32,8 +33,10 @@ abstract contract AbstractUtilityContract is IUtilityContract, ERC165 {
         return deployManager;
     }
 
-    /// @notice check is deploy manager valid
-    /// @param _deployManager address of deploy manager
+    /// @notice Check is deploy manager is valid 
+    /// @param _deployManager The address of deploy manager
+    /// @return True if valid
+    /// @dev Validate _deployManager isnt address(0) and supports IDeployManager interface
     function _validateDeployManager(address _deployManager) internal view returns (bool) {
         if (_deployManager == address(0)) {
             revert DeployManagerCannotBeZero();
@@ -48,8 +51,7 @@ abstract contract AbstractUtilityContract is IUtilityContract, ERC165 {
         return true;
     }
 
-    /// @notice function to check is contract siganture equal signature of deploy manager contract
-    /// @param interfaceId signature of contract
+    /// @inheritdoc ERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC165) returns (bool) {
         return interfaceId == type(IUtilityContract).interfaceId || super.supportsInterface(interfaceId);
     }

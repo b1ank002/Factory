@@ -14,86 +14,89 @@ interface IDeployManager is IERC165 {
     /// @dev Check is contract active
     error ContractNotActive();
 
-    /// @dev Revert if dont enough founds
+    /// @dev Revert if dont enough founds to deploy
     error NotEnoughFunds();
 
-    /// @dev Revert if Initialization of selected contract is failed
+    /// @dev Revert if Address contract and/or _initData with errors
     error InitializationFailed();
 
-    /// @dev Revert if tranacion with msg.value to owner failed
+    /// @dev Revert if founds (msg.value) when transfered to owner() failed
     error TransactionFailed();
 
-    /// @dev Check is contract interface supported
+    /// @dev Check is contract supported interfaces of utility contract and ERC-165
     error ContractIsNotUtilityContract();
 
+    /// @dev Revert if utility contract alrady registered
+    error AlreadyRegistered();
 
     // ------------------------------------------------------------------------
     // Events
     // ------------------------------------------------------------------------
 
     /// @notice Emited when new utility contract added
-    /// @param contractAddress address of new contract
-    /// @param fee tax (in wei) for this contract deployment
-    /// @param isActive status of contract
-    /// @param timestamp time where contract was added
+    /// @param contractAddress The address of new utility contract
+    /// @param fee Fee(in wei) for clone of this contract deployment
+    /// @param isActive Status of contract (active - true, deactive - false)
+    /// @param timestamp Timestamp when contract was added
     event newContractAdded(address contractAddress, uint256 fee, bool isActive, uint256 timestamp);
 
-    /// @notice Emited when fee(tax) of contarctAddress was changed 
-    /// @param contarctAddress address of utility contract
-    /// @param oldFee fee of this utility contract
-    /// @param newFee new fee of this utility contract
-    /// @param timestamp time where fee was changed
+    /// @notice Emited when fee of utility contract was changed 
+    /// @param contarctAddress Address of utility contract
+    /// @param oldFee Fee of this utility contract before changes
+    /// @param newFee Fee of this utility contract after changes
+    /// @param timestamp Timestamp when fee was changed
     event ContractFeeUpdated(address contarctAddress, uint256 oldFee, uint256 newFee, uint256 timestamp);
 
-    /// @notice Emited when status of contract changed
-    /// @param contractAddress address of utility contract
-    /// @param isActive new status of contract
-    /// @param timestamp time where status was changed
+    /// @notice Emited when utility contract status was changed
+    /// @param contractAddress The address of utility contract
+    /// @param isActive New status for utility contract
+    /// @param timestamp Timestamp when status was changed
     event ContractStatusUpdated(address contractAddress, bool isActive, uint256 timestamp);
 
-    /// @notice Emited when deployed new utility contract
-    /// @param deployer user who deployed
-    /// @param contractAddress address of utility contract
-    /// @param fee fee(msg.value) which user paid for deployment
-    /// @param timestamp time when contract was deployed
+    /// @notice Emited when new utility contarct was deployed
+    /// @param deployer The address which deployed contract
+    /// @param contractAddress The address of utility contract
+    /// @param fee Fee(in wei) paid for clone of utility contract deployment
+    /// @param timestamp Timestamp when contract was deployed
     event newDeployment(address deployer, address contractAddress, uint256 fee, uint256 timestamp);
-
 
     // ------------------------------------------------------------------------
     // Functions
     // ------------------------------------------------------------------------
 
-    /// @notice Deploy new utility contract
-    /// @param _utilityContract address of utility contract
-    /// @param _initData bytes for contract initialization
-    /// @return address of new utility contract
+    /// @notice Deploy new clone of utility contract
+    /// @param _utilityContract The address of utility contract
+    /// @param _initData Initialize data for clone of utility contract
+    /// @return address The address of the new clon of utility contract
     /// @dev Emit newContractAdded event
     function deploy(address _utilityContract, bytes calldata _initData) external payable returns (address);
 
-    /// @notice Added new Utility contract to mapping contractsData
-    /// @param _contractAddress address of utility contract
-    /// @param _fee fee(im wei) for contract
-    /// @param _isActive status for contract(recommended true)
-    /// @dev Utility contract need to be deployed and we nned to know address of this contract also it MUST BE utility contract 
+    /// @notice Added new utility contract to mapping contractsData
+    /// @param _contractAddress The address of utility contract
+    /// @param _fee Fee(in wei) for contract
+    /// @param _isActive Status for contract(recommended true)
+    /// @dev Utility contract must be deployed and need to have address of this contract also it MUST BE utility contract 
     function addNewContract(address _contractAddress, uint256 _fee, bool _isActive) external;
 
-    /// @notice Updated fee for utility contract
-    /// @param _contaractAddress address of utility contract
-    /// @param _newFee new fee(in wei) for contract
-    /// @dev function must be onlyOwner
+    /// @notice Update fee for utility contract
+    /// @param _contaractAddress The address of utility contract
+    /// @param _newFee New fee(in wei) for utility contract
+    /// @dev Function must be onlyOwner
     function updateFee(address _contaractAddress, uint256 _newFee) external;
 
     /// @notice Update status for utility contract
-    /// @param _contractAddress address of utility contract
-    /// @param _isActive new status fo utolity contract
+    /// @param _contractAddress The address of utility contract
+    /// @param _isActive New status of utility contract
+    /// @dev Must be onlyOwner
     function updateStatus(address _contractAddress, bool _isActive) external;
 
-    /// @notice set status of contract to false
-    /// @param _contractAddress address of utility contract
+    /// @notice Set status of utility contract to false
+    /// @param _contractAddress The address of utility contract
+    /// @dev Work same way like updateStatus() but with out status input
     function deactivateContract(address _contractAddress) external;
 
-    /// @notice set status of contract to true
-    /// @param _contractAddress address of utility contract
-    /// @dev work same way like deactivateContract()
+    /// @notice Set status of utility contract to true
+    /// @param _contractAddress The address of utility contract
+    /// @dev Work same way like deactivateContract()
     function activateContract(address _contractAddress) external;
 }

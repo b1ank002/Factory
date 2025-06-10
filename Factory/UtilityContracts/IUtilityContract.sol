@@ -11,25 +11,26 @@ interface IUtilityContract is IERC165 {
     // Errors
     // ------------------------------------------------------------------------
 
-    /// @dev Revert when contract address equal to zero
+    /// @dev Revert when deploy manager address equal to zero
     error DeployManagerCannotBeZero();
 
-    /// @dev Revert is contract not deploy manager
+    /// @dev Revert when contract isnt deploy manager
     error NotDeployManager();
 
-    /// @dev Revert when feiled setting deploy manager contract
+    /// @dev Revert when setting deploy manager contract failed
     error FailedToSetDeployManager();
-
 
     // ------------------------------------------------------------------------
     // Functions
     // ------------------------------------------------------------------------
 
-    /// @notice inicialized contract Data (as usuall deployManager, owner, TokenAddress)
-    /// @param _initData data in bytes for contract
+    /// @notice Initialized contract Data (as usual deployManager, owner, TokenAddress)
+    /// @param _initData data in bytes for clone of utility contract
+    /// @return True if the initialization was successful
+    /// @dev This function should be called by deploy manager contract after deploying a clone of utility contract 
     function initialize(bytes memory _initData) external returns (bool);
 
-    /// @notice view and return address of deploy manager
-    /// @return return address of deploy manager
+    /// @notice View and return address of deploy manager contract
+    /// @return return The address of deploy manager contract
     function getDeployManager() external view returns (address);
 }
