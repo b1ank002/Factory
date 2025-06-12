@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract ERC1155Airdroper is AbstractUtilityContract, Ownable {
     IERC1155 public token;
 
+    bool private initialized;
+
     address public treasury;
 
     uint256 public constant MAX_AIRDROP_BATCH_SIZE = 30;
@@ -19,7 +21,7 @@ contract ERC1155Airdroper is AbstractUtilityContract, Ownable {
     error IncorrectIdsLength();
     error BatchSizeExceeded();
 
-    function initialize(bytes memory _initData) external override notInit returns (bool) {
+    function initialize(bytes memory _initData) external override notInit(initialized) returns (bool) {
         (address _deployManager, address _token, address _treasury, address _owner) =
             abi.decode(_initData, (address, address, address, address));
 

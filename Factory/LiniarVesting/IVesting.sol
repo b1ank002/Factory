@@ -18,6 +18,7 @@ interface IVesting {
 
     event Claim(address beneficiary, uint256 amount, uint256 timestamp);
     event VestingCreated(
+        uint256 totalAmount,
         uint256 startTime,
         uint256 cliffDuration,
         uint256 claimDuration,
@@ -43,13 +44,13 @@ interface IVesting {
 
     function claim(uint256 _amount, bytes32[] calldata _proofs) external;
     function startVesting(VestingParams calldata _params) external;
-    function _vestedAmount(uint256 _amount) external view returns (uint256);
+    function vestedAmount(uint256 _amount) external view returns (uint256);
     function claimableAmount(uint256 _amount, bytes32 leaf) external view returns (uint256);
     function getInitData(address _deployManager, address _owner, address _token, bytes32 _root, uint256 _totalAmount)
         external
         pure
         returns (bytes memory);
-    function _makeLeaf(uint256 _amount) external view returns (bytes32);
+    function makeLeaf(uint256 _amount) external view returns (bytes32);
     function withdrawUnallocated() external;
     function changeRoot(bytes32 _root) external;
 

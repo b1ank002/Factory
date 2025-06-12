@@ -12,15 +12,14 @@ abstract contract AbstractUtilityContract is IUtilityContract, ERC165 {
     /// @notice The address of deploy manager that deployed this contract
     address public deployManager;
 
-    bool private initialized;
 
-    modifier notInit() {
-        require(!initialized, AlreadyInitialized());
+    modifier notInit(bool _init) {
+        require(!_init, AlreadyInitialized());
         _;
     }
 
     /// @inheritdoc IUtilityContract
-    function initialize(bytes memory _initData) external virtual override notInit returns (bool) {
+    function initialize(bytes memory _initData) external virtual override notInit(false) returns (bool) {
         deployManager = abi.decode(_initData, (address));
         _setDeployManager(deployManager);
         return true;

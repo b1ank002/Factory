@@ -25,6 +25,8 @@ contract Vesting is IVesting, Ownable, AbstractUtilityContract {
 
     IERC20 public token;
 
+    bool private initialized;
+
     bytes32 public root;
 
     mapping(bytes32 => IVesting.UserInfo) public beneficiaries;
@@ -39,14 +41,14 @@ contract Vesting is IVesting, Ownable, AbstractUtilityContract {
     function changeRoot(bytes32 _root) external onlyOwner {
         require(block.timestamp > startTime + claimDuration);
 
-        withdrawUnallocated();
+        this.withdrawUnallocated();
         root = _root;
     }
 
     function claim(uint256 _amount, bytes32[] calldata _proofs) public {
         require(block.timestamp >= startTime + cliffDuration, CliffNotReached());
 
-        bytes32 leaf = _makeLeaf(_amount);
+        bytes32 leaf = this.makeLeaf(_amount);
         require(MerkleProof.verify(_proofs, root, leaf), VerificationFailed());
 
         uint256 claimable = claimableAmount(_amount, leaf);
@@ -76,12 +78,12 @@ contract Vesting is IVesting, Ownable, AbstractUtilityContract {
         return vestedAmount(_amount) - beneficiaries[leaf].claimed;
     }
 
-    function _makeLeaf(uint256 _amount) internal view override returns (bytes32) {
+    function makeLeaf(uint256 _amount) external view returns (bytes32) {
         bytes32 leaf = keccak256(abi.encode(keccak256(abi.encode(msg.sender, _amount))));
         return leaf;
     }
 
-    function initialize(bytes memory _initData) external override notInit returns (bool) {
+    function initialize(bytes memory _initData) external override notInit(initialized) returns (bool) {
         (address _deployManager, address _owner, address _token, bytes32 _root) =
             abi.decode(_initData, (address, address, address, bytes32));
 
@@ -94,30 +96,30 @@ contract Vesting is IVesting, Ownable, AbstractUtilityContract {
         return initialized = true;
     }
 
-    function getInitData(address _deployManager, address _owner, address _token, bytes32 _root)
+    function getInitData(address _deployManager, address _owner, address _token, bytes32 _root, uint256 _totalAmount)
         external
         pure
         returns (bytes memory)
     {
-        return abi.encode(_deployManager, _owner, _token, _root);
+        return abi.encode(_deployManager, _owner, _token, _root, _totalAmount);
     }
 
     function startVesting(IVesting.VestingParams calldata _params) external onlyOwner {
-        require(token.balanceOf(address(this)) >= _totalAmount, GoldaNeNaBalike());
-        require(_startTime >= block.timestamp, IncorrectStartTime());
-        require(_cliffDuration < _claimDuration, IncorrectCliff());
-        require(_claimDuration > 0, IncorrectClaimDuration());
-        require(_minAmount > 0, IncorrectMinAmount());
-        require(_cooldown < _claimDuration, IncorrectCooldown());
+        require(token.balanceOf(address(this)) >= _params.totalAmount, GoldaNeNaBalike());
+        require(_params.startTime >= block.timestamp, IncorrectStartTime());
+        require(_params.cliffDuration < _params.claimDuration, IncorrectCliff());
+        require(_params.claimDuration > 0, IncorrectClaimDuration());
+        require(_params.minAmount > 0, IncorrectMinAmount());
+        require(_params.cooldown < _params.claimDuration, IncorrectCooldown());
         
-        totalAmount = _totalAmount;
-        startTime = _startTime;
-        cliffDuration = _cliffDuration;
-        claimDuration = _claimDuration;
-        minAmount = _minAmount;
-        cooldown = _cooldown;
+        totalAmount = _params.totalAmount;
+        startTime = _params.startTime;
+        cliffDuration = _params.cliffDuration;
+        claimDuration = _params.claimDuration;
+        minAmount = _params.minAmount;
+        cooldown = _params.cooldown;
 
-        emit VestingCreated(_startTime, _cliffDuration, _claimDuration, _minAmount, _cooldown, block.timestamp);
+        emit VestingCreated(totalAmount, startTime, cliffDuration, claimDuration, minAmount, cooldown, block.timestamp);
     }
 
     function withdrawUnallocated() external onlyOwner {
