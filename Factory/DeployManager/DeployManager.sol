@@ -29,6 +29,7 @@ contract DeployManager is IDeployManager, Ownable, ERC165 {
     /// @inheritdoc IDeployManager
     function deploy(address _utilityContract, bytes calldata _initData) external payable override returns (address) {
         ContractInfo storage info = contractsData[_utilityContract];
+
         require(info.isActive, ContractNotActive());
         require(msg.value == info.fee, NotEnoughFunds());
 
@@ -90,6 +91,6 @@ contract DeployManager is IDeployManager, Ownable, ERC165 {
 
     /// @inheritdoc ERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC165) returns (bool) {
-        return interfaceId == type(IUtilityContract).interfaceId || super.supportsInterface(interfaceId);
+        return interfaceId == type(IDeployManager).interfaceId || super.supportsInterface(interfaceId);
     }
 }
