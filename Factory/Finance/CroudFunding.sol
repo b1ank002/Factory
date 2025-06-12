@@ -15,7 +15,6 @@ contract CroundFunding is Ownable, AbstractUtilityContract {
     uint256 public received;
 
     bool public isFinished;
-    bool public initialized;
 
     mapping(address => uint256) public investors;
 
@@ -24,7 +23,6 @@ contract CroundFunding is Ownable, AbstractUtilityContract {
     error NotEnoughFounds();
     error TransferFailed();
     error WithdrawFailed();
-    error AlreadyInitialized();
     error CroudNotFinished();
     error AlreadyExist();
     error VestingNotSet();
@@ -37,11 +35,6 @@ contract CroundFunding is Ownable, AbstractUtilityContract {
 
     modifier finishControl() {
         require(!isFinished, CroudAlreadyFinished());
-        _;
-    }
-
-    modifier notInit() {
-        require(!initialized, AlreadyInitialized());
         _;
     }
 

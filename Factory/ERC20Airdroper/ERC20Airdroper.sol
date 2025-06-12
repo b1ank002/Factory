@@ -13,18 +13,10 @@ contract ERC20Airdroper is AbstractUtilityContract, Ownable {
 
     address public treasury;
 
-    bool private initialized;
-
     constructor() payable Ownable(msg.sender) {}
-
-    modifier notInit() {
-        require(!initialized, AlreadyInitialized());
-        _;
-    }
 
     error receiveFailed(address receiver); // receive failed at address receiver
     error notEnough(); // not enough approved tokens
-    error AlreadyInitialized();
     error IncorrectLength();
     error BatchSizeExceeded();
 

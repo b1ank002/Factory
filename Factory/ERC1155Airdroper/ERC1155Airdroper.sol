@@ -10,19 +10,11 @@ contract ERC1155Airdroper is AbstractUtilityContract, Ownable {
 
     address public treasury;
 
-    bool private initialized;
-
     uint256 public constant MAX_AIRDROP_BATCH_SIZE = 30;
 
     constructor() payable Ownable(msg.sender) {}
 
-    modifier notInit() {
-        require(!initialized, AlreadyInitialized());
-        _;
-    }
-
     error TokensNotApproved(); // not enough approved tokens
-    error AlreadyInitialized();
     error IncorrectReceiversLength();
     error IncorrectIdsLength();
     error BatchSizeExceeded();

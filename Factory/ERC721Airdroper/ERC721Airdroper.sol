@@ -10,19 +10,11 @@ contract ERC721Airdroper is AbstractUtilityContract, Ownable {
 
     address public treasury;
 
-    bool private initialized;
-
     uint256 public constant MAX_AIRDROP_BATCH_SIZE = 100;
 
     constructor() payable Ownable(msg.sender) {}
 
-    modifier notInit() {
-        require(!initialized, AlreadyInitialized());
-        _;
-    }
-
     error TokensNotApproved(); // not enough approved tokens
-    error AlreadyInitialized();
     error IncorrectLength();
     error BatchSizeExceeded();
 

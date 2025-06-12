@@ -20,6 +20,8 @@ interface IUtilityContract is IERC165 {
     /// @dev Revert when setting deploy manager contract failed
     error FailedToSetDeployManager();
 
+    error AlreadyInitialized();
+
     // ------------------------------------------------------------------------
     // Functions
     // ------------------------------------------------------------------------
