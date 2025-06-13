@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "Factory/UtilityContracts/AbstractUtilityContract.sol";
 import "./IVesting.sol";
 
+import {VestingLib} from "./VestingLib.sol";
+
 /*
     0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2 200
     0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db 300
@@ -21,11 +23,11 @@ import "./IVesting.sol";
 */
 
 contract Vesting is IVesting, Ownable, AbstractUtilityContract {
+    using VestingLib for IVesting.UserInfo;
+
     constructor() payable Ownable(msg.sender) {}
 
     IERC20 public token;
-
-    bool private initialized;
 
     bytes32 public root;
 
@@ -34,56 +36,61 @@ contract Vesting is IVesting, Ownable, AbstractUtilityContract {
     uint256 public totalAmount;
     uint256 public startTime;
     uint256 public cliffDuration;
-    uint256 public claimDuration;
+    uint256 public duration;
     uint256 public minAmount;
     uint256 public cooldown;
 
     function changeRoot(bytes32 _root) external onlyOwner {
-        require(block.timestamp > startTime + claimDuration);
+        require(block.timestamp > startTime + duration);
 
-        this.withdrawUnallocated();
+        if (token.balanceOf(address(this)) > 0) this.withdrawUnallocated();
+
         root = _root;
     }
 
     function claim(uint256 _amount, bytes32[] calldata _proofs) public {
-        require(block.timestamp >= startTime + cliffDuration, CliffNotReached());
+        uint256 timestamp = block.timestamp;
+        if (timestamp < startTime + cliffDuration) {
+            revert CliffNotReached(timestamp, startTime + cliffDuration);
+        }
 
         bytes32 leaf = this.makeLeaf(_amount);
         require(MerkleProof.verify(_proofs, root, leaf), VerificationFailed());
 
-        uint256 claimable = claimableAmount(_amount, leaf);
-        require(claimable >= minAmount, NothingToClaim());
-        require(
-            beneficiaries[leaf].lastClaim == 0 || beneficiaries[leaf].lastClaim < block.timestamp - cooldown,
-            CooldownNotFinished()
-        );
+        uint256 claimable = claimableAmount(leaf);
+        if (claimable < minAmount) revert NothingToClaim();
 
-        beneficiaries[leaf].claimed += claimable;
-        require(token.transfer(msg.sender, claimable), TransferFailed());
-        beneficiaries[leaf].lastClaim = block.timestamp;
+        IVesting.UserInfo beneficiary = beneficiaries[leaf];
+        if (beneficiary.lastClaim > timestamp - cooldown) revert CooldownNotFinished();
 
-        emit Claim(msg.sender, claimable, block.timestamp);
+        unchecked {
+            beneficiaries[leaf].claimed += claimable;
+        }
+        require(token.transfer(msg.sender, claimable));
+        beneficiaries[leaf].lastClaim = timestamp;
+
+        emit Claim(msg.sender, claimable, timestamp);
     }
 
-    function vestedAmount(uint256 _amount) public view returns (uint256) {
-        if (block.timestamp < startTime + cliffDuration) return 0;
+    // function vestedAmount(uint256 _amount) public view returns (uint256) {
+    //     if (block.timestamp < startTime + cliffDuration) return 0;
 
-        uint256 passedTime = block.timestamp - (startTime + cliffDuration);
-        if (passedTime > claimDuration) passedTime = claimDuration;
+    //     uint256 passedTime = block.timestamp - (startTime + cliffDuration);
+    //     if (passedTime > duration) passedTime = duration;
 
-        return _amount * passedTime / claimDuration;
-    }
+    //     return _amount * passedTime / duration;
+    // }
 
-    function claimableAmount(uint256 _amount, bytes32 leaf) public view returns (uint256) {
-        return vestedAmount(_amount) - beneficiaries[leaf].claimed;
-    }
+    // function claimableAmount(uint256 _amount, bytes32 leaf) public view returns (uint256) {
+    //     return vestedAmount(_amount) - beneficiaries[leaf].claimed;
+    // }
 
     function makeLeaf(uint256 _amount) external view returns (bytes32) {
         bytes32 leaf = keccak256(abi.encode(keccak256(abi.encode(msg.sender, _amount))));
         return leaf;
     }
 
-    function initialize(bytes memory _initData) external override notInit(initialized) returns (bool) {
+    function initialize(bytes memory _initData) external override notInit returns (bool) {
         (address _deployManager, address _owner, address _token, bytes32 _root) =
             abi.decode(_initData, (address, address, address, bytes32));
 
@@ -105,29 +112,32 @@ contract Vesting is IVesting, Ownable, AbstractUtilityContract {
     }
 
     function startVesting(IVesting.VestingParams calldata _params) external onlyOwner {
-        require(token.balanceOf(address(this)) >= _params.totalAmount, GoldaNeNaBalike());
-        require(_params.startTime >= block.timestamp, IncorrectStartTime());
-        require(_params.cliffDuration < _params.claimDuration, IncorrectCliff());
-        require(_params.claimDuration > 0, IncorrectClaimDuration());
-        require(_params.minAmount > 0, IncorrectMinAmount());
-        require(_params.cooldown < _params.claimDuration, IncorrectCooldown());
+        if (_params.duration == 0) revert IncorrectDuration();
+        if (_params.totalAmount == 0) revert AmountCantBeZero();
+        uint256 timestamp = block.timestamp;
+        if (_params.startTime < timestamp) revert IncorrectStartTime(_params.startTime, timestamp);
+        if (_params.cooldown > _params.duration) revert IncorrectCooldown();
+
+        uint256 availableBalance = token.balanceOf(address(this));
+        if (availableBalance < _params.totalAmount) revert GoldaNeNaBalike(availableBalance, totalAmount);
         
         totalAmount = _params.totalAmount;
         startTime = _params.startTime;
         cliffDuration = _params.cliffDuration;
-        claimDuration = _params.claimDuration;
+        duration = _params.duration;
         minAmount = _params.minAmount;
         cooldown = _params.cooldown;
 
-        emit VestingCreated(totalAmount, startTime, cliffDuration, claimDuration, minAmount, cooldown, block.timestamp);
+        emit VestingCreated(totalAmount, startTime, cliffDuration, duration, minAmount, cooldown, timestamp);
     }
 
     function withdrawUnallocated() external onlyOwner {
-        require(block.timestamp > startTime + claimDuration, NotFinishedYet());
+        if (block.startTime < startTime + duration) revert NotFinishedYet();
 
         uint256 avaible = token.balanceOf(address(this));
-        require(avaible > 0, NothingToWithdraw());
-        require(token.transfer(owner(), avaible), TransferFailed());
+        if (avaible == 0) revert NothingToWithdraw();
+        
+        require(token.transfer(owner(), avaible));
 
         emit TokensWithdraw(avaible, block.timestamp);
     }

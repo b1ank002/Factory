@@ -10,8 +10,6 @@ contract CroundFunding is Ownable, AbstractUtilityContract {
 
     address public vesting;
 
-    bool private initialized;
-
     uint256 public goal;
     uint256 public duration; // in sec btw
     uint256 public received;
@@ -85,7 +83,7 @@ contract CroundFunding is Ownable, AbstractUtilityContract {
         require(succes, WithdrawFailed());
     }
 
-    function initialize(bytes memory _initData) external override notInit(initialized) returns (bool) {
+    function initialize(bytes memory _initData) external override notInit returns (bool) {
         (address _deployManager, address fundriser, uint256 _goal, uint256 _duration) =
             abi.decode(_initData, (address, address, uint256, uint256));
 

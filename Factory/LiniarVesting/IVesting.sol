@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.29;
 
 interface IVesting {
@@ -11,7 +11,7 @@ interface IVesting {
         uint256 totalAmount;
         uint256 startTime;
         uint256 cliffDuration;
-        uint256 claimDuration;
+        uint256 duration;
         uint256 minAmount;
         uint256 cooldown;
     }
@@ -21,26 +21,24 @@ interface IVesting {
         uint256 totalAmount,
         uint256 startTime,
         uint256 cliffDuration,
-        uint256 claimDuration,
+        uint256 duration,
         uint256 minAmount,
         uint256 cooldown,
         uint256 timestamp
     );
     event TokensWithdraw(uint256 amount, uint256 timestamp);
 
-    error CliffNotReached();
+    error CliffNotReached(uint256 timestamp, uint256 finishCliffTime);
     error NothingToClaim();
-    error TransferFailed();
     error CooldownNotFinished();
     error VerificationFailed();
-    error GoldaNeNaBalike(); // tokens arent on the balance
-    error IncorrectStartTime();
-    error IncorrectCliff();
-    error IncorrectClaimDuration();
-    error IncorrectMinAmount();
+    error GoldaNeNaBalike(uint256 availableBalance, uint256 totalAmount); // tokens arent on the balance
+    error IncorrectStartTime(uint256 startTime, uint256 timestamp);
+    error IncorrectDuration();
     error IncorrectCooldown();
     error NotFinishedYet();
     error NothingToWithdraw();
+    error AmountCantBeZero();
 
     function claim(uint256 _amount, bytes32[] calldata _proofs) external;
     function startVesting(VestingParams calldata _params) external;
