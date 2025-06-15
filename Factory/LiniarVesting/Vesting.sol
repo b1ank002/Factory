@@ -7,8 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "Factory/UtilityContracts/AbstractUtilityContract.sol";
 import "./IVesting.sol";
 
-import {VestingLib} from "./VestingLib.sol";
-
 /*
     0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2 200
     0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db 300
@@ -72,18 +70,18 @@ contract Vesting is IVesting, Ownable, AbstractUtilityContract {
         emit Claim(msg.sender, claimable, timestamp);
     }
 
-    // function vestedAmount(uint256 _amount) public view returns (uint256) {
-    //     if (block.timestamp < startTime + cliffDuration) return 0;
+    function vestedAmount(uint256 _amount) public view returns (uint256) {
+        if (block.timestamp < startTime + cliffDuration) return 0;
 
-    //     uint256 passedTime = block.timestamp - (startTime + cliffDuration);
-    //     if (passedTime > duration) passedTime = duration;
+        uint256 passedTime = block.timestamp - (startTime + cliffDuration);
+        if (passedTime > duration) passedTime = duration;
 
-    //     return _amount * passedTime / duration;
-    // }
+        return _amount * passedTime / duration;
+    }
 
-    // function claimableAmount(uint256 _amount, bytes32 leaf) public view returns (uint256) {
-    //     return vestedAmount(_amount) - beneficiaries[leaf].claimed;
-    // }
+    function claimableAmount(uint256 _amount, bytes32 leaf) public view returns (uint256) {
+        return vestedAmount(_amount) - beneficiaries[leaf].claimed;
+    }
 
     function makeLeaf(uint256 _amount) external view returns (bytes32) {
         bytes32 leaf = keccak256(abi.encode(keccak256(abi.encode(msg.sender, _amount))));
